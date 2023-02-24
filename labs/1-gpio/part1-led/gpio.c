@@ -37,6 +37,7 @@ void nop(void);
 volatile unsigned *gpio_fsel0 = (void*)(GPIO_BASE + 0x00);
 volatile unsigned *gpio_set0  = (void*)(GPIO_BASE + 0x1C);
 volatile unsigned *gpio_clr0  = (void*)(GPIO_BASE + 0x28);
+volatile unsigned *gpio_lvl0  = (void*)(GPIO_BASE + 0x34);
 
 // Part 1 implement gpio_set_on, gpio_set_off, gpio_set_output
 
@@ -79,6 +80,9 @@ void gpio_set_off(unsigned pin) {
 // set <pin> to input.
 void gpio_set_input(unsigned pin) {
     // implement.
+    volatile unsigned *addr = gpio_fsel0 + (pin / 10);
+    unsigned off = (pin % 10) * 3;
+    put32(addr, get32(addr) & ~(0x7 << off));
 }
 
 // return the value of <pin>
@@ -86,7 +90,12 @@ int gpio_read(unsigned pin) {
     unsigned v = 0;
 
     // implement.
-
+    volatile unsigned *addr = gpio_lvl0;
+    if (pin >= 32) {
+        addr += 1;
+        pin -= 32;
+    }
+    v = get32(addr) & (1 << pin);
     return v;
 }
 
