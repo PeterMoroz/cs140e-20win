@@ -16,7 +16,7 @@ static const char *ttyusb_prefixes[] = {
 static int filter(const struct dirent *d) {
     // scan through the prefixes, returning 1 when you find a match.
     // 0 if there is no match.
-    unimplemented();
+    return strncmp(d->d_name, "ttyUSB", strlen("ttyUSB")) == 0 ? 1 : 0;
 }
 
 // find the TTY-usb device (if any) by using <scandir> to search for
@@ -30,7 +30,31 @@ char *find_ttyusb(void) {
 
     // use <alphasort> in <scandir>
     // return a malloc'd name so doesn't corrupt.
-    unimplemented();
+    struct dirent **namelist;
+    int n;
+
+    n = scandir("/dev", &namelist, filter, alphasort);
+    if (n == -1) {
+        panic("scandir() failed\n");
+    }
+
+    if (n == 0) {
+        panic("no ttyUSB device(s)\n");
+    }
+
+    if (n > 1) {
+        panic("too many ttyUSB devices\n");
+    }
+
+    p = namelist[0]->d_name;
+
+    static char name[261] = { 0 };
+    sprintf(name, "/dev/%s", namelist[0]->d_name);
+
+    free(namelist[0]);
+    free(namelist);
+
+    p = name;
 
     return p;
 }
