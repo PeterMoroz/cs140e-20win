@@ -97,7 +97,6 @@ void wait_for_data(void) {
 // Simple bootloader: put all of your code here: implement steps 2,3,4,5,6
 void notmain(void) {
     uart_init();
-
     // 1. keep sending GET_PROG_INFO until there is data.
     wait_for_data();
 
@@ -105,24 +104,65 @@ void notmain(void) {
      * Add your code below: 2,3,4,5,6
      */
 
-
     // 2. expect: [PUT_PROG_INFO, addr, nbytes, cksum] 
     //    we echo cksum back in step 4 to help debugging.
+    unsigned op;
+    /*
+    do {
+        op = get_uint();
+    } while (op != PUT_PROG_INFO);
+    */
+    op = get_uint();
+    if (op != PUT_PROG_INFO) {
+        put_uint(BOOT_ERROR);
+        reboot();
+    }
 
+    unsigned addr = get_uint();
+    unsigned nbytes = get_uint();
+    unsigned cksum = get_uint();
 
     // 3. If the binary will collide with us, abort. 
     //    you can assume that code must be below where the booloader code
     //    gap starts.
+    if (addr + nbytes > 0x200000) {
+        put_uint(BAD_CODE_ADDR);
+        reboot();
+    }
 
 
     // 4. send [GET_CODE, cksum] back.
+    put_uint(GET_CODE);
+    put_uint(cksum);
 
 
     // 5. expect: [PUT_CODE, <code>]
     //  read each sent byte and write it starting at 
     //  ARMBASE using PUT8
+    /*
+    do {
+        op = get_uint();
+    } while (op != PUT_CODE);
+    */
+    op = get_uint();
+    if (op != PUT_CODE) {
+        put_uint(BOOT_ERROR);
+        reboot();
+    }
+
+    addr = ARMBASE;
+    for (unsigned i = 0; i < nbytes; i++) {
+        unsigned char b = get_byte();
+        PUT8(addr++, b);
+    }
 
     // 6. verify the cksum of the copied code.
+    const unsigned char *code = (const void *)ARMBASE;
+    unsigned actual_cksum = crc32(code, nbytes);
+    if (actual_cksum != cksum) {
+        put_uint(BAD_CODE_CKSUM);
+        reboot();
+    }
 
 
     /****************************************************************
