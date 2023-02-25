@@ -66,11 +66,47 @@ static void print_read(mem_t *m) {
     printf("\tTRACE:GET32(%p)=0x%x\n", m->addr, m->val);
 }
 
+
+#define NUM_OF_MEM_ENTRIES 1024
+static mem_t fake_memory[NUM_OF_MEM_ENTRIES];
+static size_t num_of_mem_entries = 0;
+
 unsigned get32(const volatile void *addr) {
-    unimplemented();
+    size_t i = 0;
+    for (; i < num_of_mem_entries; i++) {
+        if (fake_memory[i].addr == addr)
+            break;
+    }
+
+    if (i == num_of_mem_entries) {
+        num_of_mem_entries++;
+        if (num_of_mem_entries > NUM_OF_MEM_ENTRIES)
+            panic("fake memory exhausted\n");
+        fake_memory[i] = mk_mem(addr, fake_random());
+        return fake_memory[i].val;
+    }
+
+    print_read(&fake_memory[i]);
+    return fake_memory[i].val;
 }
 
 void put32(volatile void *addr, unsigned val) {
-    unimplemented();
+    size_t i = 0;
+    for (; i < num_of_mem_entries; i++) {
+        if (fake_memory[i].addr == addr)
+            break;
+    }
+
+    if (i == num_of_mem_entries) {
+        num_of_mem_entries++;
+        if (num_of_mem_entries > NUM_OF_MEM_ENTRIES)
+            panic("fake memory exhausted\n");
+
+        fake_memory[i] = mk_mem(addr, val);
+    } else {
+        fake_memory[i].val = val;
+    }
+
+    print_write(&fake_memory[i]);
 }
 
