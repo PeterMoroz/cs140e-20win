@@ -30,6 +30,12 @@
 // gross that these are not auto-consistent with GET32 in rpi.h
 unsigned __wrap_GET32(unsigned addr);
 unsigned __real_GET32(unsigned addr);
+void __wrap_PUT32(unsigned addr, unsigned v);
+void __real_PUT32(unsigned addr, unsigned v);
+unsigned __wrap_get32(const volatile void *addr);
+unsigned __real_get32(const volatile void *addr);
+void __wrap_put32(volatile void *addr, unsigned v);
+void __real_put32(volatile void *addr, unsigned v);
 
 static int tracing_p = 0;
 static int in_trace = 0;
@@ -61,6 +67,60 @@ unsigned __wrap_GET32(unsigned addr) {
     return v;
 }
 
+// the linker will change all calls to PUT32 to call __wrap_PUT32
+void __wrap_PUT32(unsigned addr, unsigned v) { 
+    // the linker will change the name of PUT32 to __real_PUT32,
+    // which we can then call ourselves.
+    __real_PUT32(addr, v); 
+
+    // doing this print while the UART is busying printing a character
+    // will lead to an inf loop since printk will do its own
+    // puts/gets.  use <in_trace> to skip our own monitoring calls.
+    if(!in_trace && tracing_p) {
+        in_trace = 1;
+        // match it up with your unix print so you can compare.
+        // we have to add a 0x
+        printk("\tTRACE:PUT32(0x%x,0x%x)\n", addr, v);
+        in_trace = 0;
+    }
+}
+
+// the linker will change all calls to get32 to call __wrap_get32
+unsigned __wrap_get32(const volatile void *addr) { 
+    // the linker will change the name of get32 to __real_get32,
+    // which we can then call ourselves.
+    unsigned v = __real_get32(addr); 
+
+    // doing this print while the UART is busying printing a character
+    // will lead to an inf loop since printk will do its own
+    // puts/gets.  use <in_trace> to skip our own monitoring calls.
+    if(!in_trace && tracing_p) {
+        in_trace = 1;
+        // match it up with your unix print so you can compare.
+        // we have to add a 0x
+        printk("\tTRACE:get32(0x%x)=0x%x\n", addr, v);
+        in_trace = 0;
+    }
+    return v;
+}
+
+// the linker will change all calls to put32 to call __wrap_put32
+void __wrap_put32(volatile void *addr, unsigned v) { 
+    // the linker will change the name of put32 to __real_put32,
+    // which we can then call ourselves.
+    __real_put32(addr, v); 
+
+    // doing this print while the UART is busying printing a character
+    // will lead to an inf loop since printk will do its own
+    // puts/gets.  use <in_trace> to skip our own monitoring calls.
+    if(!in_trace && tracing_p) {
+        in_trace = 1;
+        // match it up with your unix print so you can compare.
+        // we have to add a 0x
+        printk("\tTRACE:put32(0x%x,0x%x)\n", addr, v);
+        in_trace = 0;
+    }
+}
 
 void trace_stop(void) {
     demand(tracing_p, "trace already stopped!\n");
