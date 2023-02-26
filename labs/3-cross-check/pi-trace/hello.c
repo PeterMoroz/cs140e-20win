@@ -7,7 +7,7 @@ void notmain(void) {
     uart_init();
 
     printk("about to trace gpio_read(20):\n");
-    trace_start(0);
+    trace_start(1);
     int v = gpio_read(20);
     trace_stop();
     printk("done: gpio_read(20)=%d\n", v);
@@ -38,6 +38,12 @@ void notmain(void) {
     trace_fn(gpio_read(20));
     trace_fn(gpio_set_input(20));
     trace_fn(gpio_set_output(20));
+
+    printk("-- trace dump\n");
+    trace_dump(0);
+    printk("-- trace dump again\n");
+    trace_dump(1);
+    printk("-- trace dump (should be empty)\n");
 
     clean_reboot();
 }

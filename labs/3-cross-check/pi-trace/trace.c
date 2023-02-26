@@ -39,10 +39,18 @@ void __real_put32(volatile void *addr, unsigned v);
 
 static int tracing_p = 0;
 static int in_trace = 0;
+static int logging_p = 0;
+static int line_count = 0;
+
+#define MAX_LINES 1024
+#define LINE_LENGTH 28
+
+static char lines[MAX_LINES][LINE_LENGTH + 1];
 
 void trace_start(int capture_p) {
-    if(capture_p)
-        unimplemented();
+    if(capture_p) {
+        logging_p = 1;        
+    }
     demand(!tracing_p, "trace already running!");
     demand(!in_trace, "invalid in_trace");
     tracing_p = 1; 
@@ -53,6 +61,10 @@ unsigned __wrap_GET32(unsigned addr) {
     // the linker will change the name of GET32 to __real_GET32,
     // which we can then call ourselves.
     unsigned v = __real_GET32(addr); 
+
+    if (logging_p && line_count < MAX_LINES) {
+        snprintk(lines[line_count++], LINE_LENGTH, "GET32(0x%x)=0x%x", addr, v);
+    }
 
     // doing this print while the UART is busying printing a character
     // will lead to an inf loop since printk will do its own
@@ -72,6 +84,10 @@ void __wrap_PUT32(unsigned addr, unsigned v) {
     // the linker will change the name of PUT32 to __real_PUT32,
     // which we can then call ourselves.
     __real_PUT32(addr, v); 
+    
+    if (logging_p && line_count < MAX_LINES) {
+        snprintk(lines[line_count++], LINE_LENGTH, "PUT32(0x%x,0x%x)", addr, v);
+    }
 
     // doing this print while the UART is busying printing a character
     // will lead to an inf loop since printk will do its own
@@ -90,6 +106,10 @@ unsigned __wrap_get32(const volatile void *addr) {
     // the linker will change the name of get32 to __real_get32,
     // which we can then call ourselves.
     unsigned v = __real_get32(addr); 
+    
+    if (logging_p && line_count < MAX_LINES) {
+        snprintk(lines[line_count++], LINE_LENGTH, "get32(0x%x)=0x%x", addr, v);
+    }
 
     // doing this print while the UART is busying printing a character
     // will lead to an inf loop since printk will do its own
@@ -110,6 +130,10 @@ void __wrap_put32(volatile void *addr, unsigned v) {
     // which we can then call ourselves.
     __real_put32(addr, v); 
 
+    if (logging_p && line_count < MAX_LINES) {
+        snprintk(lines[line_count++], LINE_LENGTH, "put32(0x%x,0x%x)", addr, v);
+    }
+
     // doing this print while the UART is busying printing a character
     // will lead to an inf loop since printk will do its own
     // puts/gets.  use <in_trace> to skip our own monitoring calls.
@@ -128,5 +152,11 @@ void trace_stop(void) {
 }
 
 void trace_dump(int reset_p) { 
-    unimplemented();
+    demand(logging_p, "logging wasn't enabled!\n");
+    demand(!in_trace, "invalid in_trace\n");
+    for (int i = 0; i < line_count; i++)
+        printk("%s\n", lines[i]);
+
+    if (reset_p)
+        line_count = 0;
 }
