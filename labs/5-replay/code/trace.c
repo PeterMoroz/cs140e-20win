@@ -33,7 +33,8 @@ static void emit_if_uniq(const char *dir, uint8_t *p, unsigned nbytes) {
             sys_die(mkdir, mkdir failed: weird);
     }
 
-    uint32_t crc = crc32(p,nbytes);
+    /* uint32_t crc = crc32(p,nbytes); */
+    uint32_t crc = our_crc32(p,nbytes);
     char buf[1024];
     sprintf(buf, "%s/log-file.%x.txt", dir, crc);
 

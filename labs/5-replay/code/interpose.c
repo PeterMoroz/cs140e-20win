@@ -127,13 +127,32 @@ static uint8_t corrupt_byte(uint8_t c) {
 // returns 0 if not exited, 1 if exited cleanly, < 0 otherwise.
 // should clean this up.
 static int handle_child_exit(int pid, int can_fail_p) {
-    unimplemented();
+    int rc;
+    rc = waitpid(pid, NULL, WNOHANG);
+    if (rc <= 0)
+        return rc;
+    return 1;
 }
 
 static int forward(endpt_t *in, endpt_t *out) {
     char buf[1024];
     int n;
-    unimplemented();
+    n = read(in->fd, buf, sizeof(buf));
+    if (n < 0) {
+        output("read() from %s (%s) failed! n = %d\n", in->name, in->dev_name, n);
+        return 0;
+    }
+
+    int off = 0;
+    while (off < n) {
+        int rc = write(out->fd, &buf[off], n - off);
+        if (rc < 0) {
+            output("write() to %s (%s) failed! rc = %d\n", out->name, out->dev_name, rc);
+            return 0;
+        }
+        off += rc;
+    }
+
     for(int i = 0; i < n; i++)
         wr_log_byte(in->log_fd, in->type, buf[i]);
     return n;
@@ -164,7 +183,8 @@ void trace(int log_fd, endpt_t *u, endpt_t *p) {
     }
 
 done:
-    unimplemented();
+    if (!fd_is_open(u->fd))
+        panic("early closed socket by unix side\n");
     if(!handle_child_exit(u->pid,0))
         panic("received EOF: unix side should be dead!\n");
     else

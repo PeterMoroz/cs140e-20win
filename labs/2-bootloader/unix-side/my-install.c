@@ -37,6 +37,12 @@
 
 #include "libunix.h"
 
+#define TRACE_FD 21
+static int is_fd_open(int fd)
+{
+    return fcntl(fd, F_GETFL);
+}
+
 // hack-y state machine to indicate when we've seen the special string
 // 'DONE!!!' from the pi telling us to shutdown.
 static int done(unsigned char *s) {
@@ -116,7 +122,12 @@ int main(int argc, char *argv[]) {
         dev_name = argv[1];
     else
         die("%s: wrong number (n=%d) of arguments: expected 1 or 2\n", progname, argc-1);
-    int fd = set_tty_to_8n1(open_tty(dev_name), B115200, 1);
+    /* int fd = set_tty_to_8n1(open_tty(dev_name), B115200, 1); */
+    int fd = -1;
+    if (is_fd_open(TRACE_FD))
+        fd = TRACE_FD;
+    else
+        fd = set_tty_to_8n1(open_tty(dev_name), B115200, 1);
 
     // get program to boot.
     char *pi_prog = argv[argc-1];
