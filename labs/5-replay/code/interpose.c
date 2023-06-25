@@ -192,7 +192,18 @@ done:
 }
 
 static int read_exact_fail(int fd, void *data, unsigned n, int can_fail_p) {
-    unimplemented();
+    assert(n);
+    int got;
+    if ((got = read(fd, data, n)) < 0)
+        sys_die(read, read_exact_fail failed);
+    if (got != n) {
+        if (can_fail_p) {
+            debug("expected a read of %d bytes, got %d\n", n, got);
+            return 0;
+        }
+        panic("read_exact_fail failed (expected %d bytes, got %d)\n", n, got);
+    }
+    return n;
 }
 
 
@@ -207,7 +218,6 @@ int replay_unix(endpt_t *u, log_ent_t *log, unsigned n, int fail_i) {
     uint8_t c;
     for(int i = 0; i < n; i++) {
         log_ent_t *e = &log[i];
-
         if(e->sender == PI_OUTPUT) {
             c = e->v;
             if(fail_i == sent_bytes) {
@@ -218,10 +228,10 @@ int replay_unix(endpt_t *u, log_ent_t *log, unsigned n, int fail_i) {
             write_exact(u->fd, &c, 1);
             sent_bytes++;
         } else {
-            unimplemented();
+            read_exact_fail(u->fd, &c, 1, 1);
         }
     }
-    unimplemented();
+    output("Bytes sent: %d\n", sent_bytes);
 
     // have to spin for some number of iterations checking for child 
     // exit.

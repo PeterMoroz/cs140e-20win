@@ -15,6 +15,11 @@
 #include "libunix.h"
 #include "interpose.h"
 
+void close_open_fds(void) {
+    for (int i = 3; i < 256; i++)
+        close(i);
+}
+
 void usage(void) {
     output("Usage error: `replay <log-file-name> <unix-side-install> <program-name>\n");
     output("E.g.   replay ./log-file.txt my-install ./hello.bin\n");
