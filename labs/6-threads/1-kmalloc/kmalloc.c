@@ -7,6 +7,18 @@ extern char __heap_start__;
 // track if initialized.
 static int init_p;
 
+static char *heap_ptr = NULL;
+
+static unsigned mod(unsigned m, unsigned n) {
+    if (m == n)
+        return 0;
+    if (m < n)
+        return m;
+    while (m > n)
+        m -= n;
+    return m;
+}
+
 /*
  * Return a memory block of at least size <nbytes>
  * Notes:
@@ -19,7 +31,13 @@ static int init_p;
  */
 void *kmalloc(unsigned nbytes) {
     demand(init_p, calling before initialized);
-    unimplemented();
+    if (nbytes < 4)
+        nbytes = 4;
+    else if (nbytes % 4 != 0)
+        nbytes += (4 - (nbytes % 4));
+    char *ptr = heap_ptr;
+    heap_ptr += nbytes;
+    return ptr;
 }
 
 // address of returned pointer should be a multiple of
@@ -30,7 +48,21 @@ void *kmalloc_aligned(unsigned nbytes, unsigned alignment) {
     if(alignment <= 4)
         return kmalloc(nbytes);
     demand(alignment % 4 == 0, weird alignment: not a multiple of 4!);
-    unimplemented();
+    if (nbytes < alignment)
+        nbytes = alignment;
+    else
+    {
+        unsigned r = mod(nbytes, alignment);
+        if (r != 0)
+            nbytes += alignment - r;
+    }
+
+    unsigned r = mod((unsigned)heap_ptr, alignment);
+    if (r != 0)
+        heap_ptr += alignment - r;
+    char *ptr = heap_ptr;
+    heap_ptr += nbytes;
+    return ptr;
 }
 
 /*
@@ -45,7 +77,7 @@ void kmalloc_init(void) {
     if(init_p)
         return;
     init_p = 1;
-    unimplemented();
+    heap_ptr = &__heap_start__;
 }
 
 /* 
@@ -53,7 +85,7 @@ void kmalloc_init(void) {
  * pointer back to the beginning.
  */
 void kfree_all(void) {
-    unimplemented();
+    heap_ptr = &__heap_start__;
 }
 
 // return pointer to the first free byte.
@@ -62,5 +94,5 @@ void kfree_all(void) {
 //    assert(<addr> < kmalloc_heap_ptr());
 // 
 void *kmalloc_heap_ptr(void) {
-    unimplemented();
+    return heap_ptr;
 }
