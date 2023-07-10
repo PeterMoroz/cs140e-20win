@@ -59,6 +59,8 @@ MK_FN(check_callee_save)
 @
 MK_FN(cswitch)
     @ put your save code here
+    stmia r0, {r4-r12, r14}
+    str r13, [r0, #0x28]
 
     @ kill all the regs to verify save/restore works.
     mov r4, #4
@@ -74,4 +76,8 @@ MK_FN(cswitch)
     mov lr, #14
     
     @ put your restore code here.
+    
+    ldmia r1, {r4-r12, r14}
+    ldr r13, [r1, #0x28]
+
     bx lr
