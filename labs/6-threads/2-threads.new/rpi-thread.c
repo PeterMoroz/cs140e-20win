@@ -58,7 +58,12 @@ rpi_thread_t *rpi_fork(void (*code)(void *arg), void *arg) {
      */
     void rpi_init_trampoline(void);
 
-    // unimplemented();
+    // a full descending stack
+    t->reg_save_area[9] = (uint32_t)&t->stack[0] + THREAD_MAXSTACK;
+
+    // needed for the part 4
+    //t->reg_save_area[10] = &rpi_init_trampoline;
+
     t->fn = code;
     t->arg = arg;
 
@@ -106,7 +111,12 @@ void rpi_thread_start(void) {
         return;
     rpi_internal_check();
 
-    // unimplemented();
+    while (!Q_empty(&runq)) {
+        rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
+        cur_thread = t;
+        t->fn(t->arg);
+        th_free(t);
+    }
     return;
 
     //  1. create a new fake thread 
@@ -114,7 +124,9 @@ void rpi_thread_start(void) {
     //  3. context switch to it, saving current state in
     //	    <scheduler_thread>
     scheduler_thread = th_alloc();
-    unimplemented();
+    //rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
+    //cur_thread = t;
+    //rpi_cswitch(scheduler_thread, t);
     printk("rpithreads: done with all threads! returning\n");
 }
 
@@ -135,12 +147,14 @@ void rpi_internal_check(void) {
     //      walk through the run queue making sure the stack pointer
     //     and ra pointer makes sense.
     if(!Q_empty(&runq)) {
-        while (!Q_empty(&runq)) {
-            rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
-            cur_thread = t;
-            t->fn(t->arg);
+        rpi_thread_t *t = (rpi_thread_t *)Q_start(&runq);
+        while (t != NULL) {
+            // TO DO: check SP and ra pointer
+            if (t->reg_save_area[9] != (uint32_t)&t->stack[0] + THREAD_MAXSTACK)
+                panic("invalid stack pointer: should be %u, have %u\n",
+                        &t->stack[0], t->reg_save_area[9]);
+            t = (rpi_thread_t *)Q_next(t);
         }
-        return;
     }
     printk("thread: internal check passed\n");
 }
