@@ -59,10 +59,9 @@ rpi_thread_t *rpi_fork(void (*code)(void *arg), void *arg) {
     void rpi_init_trampoline(void);
 
     // a full descending stack
-    t->reg_save_area[9] = (uint32_t)&t->stack[0] + THREAD_MAXSTACK;
+    t->reg_save_area[10] = (uint32_t)&t->stack[0] + THREAD_MAXSTACK;
 
-    // needed for the part 4
-    //t->reg_save_area[10] = &rpi_init_trampoline;
+    t->reg_save_area[9] = (uint32_t)&rpi_init_trampoline;
 
     t->fn = code;
     t->arg = arg;
@@ -82,6 +81,18 @@ void rpi_exit(int exitcode) {
 	 * 3. otherwise we are done, switch to the scheduler thread 
 	 * so we call back into the client code.
 	 */
+
+  rpi_thread_t *cur = rpi_cur_thread();
+  th_free(cur);
+
+  if (!Q_empty(&runq)) {
+      cur_thread = (rpi_thread_t *)Q_pop(&runq);
+  } else {
+      cur_thread = scheduler_thread;
+  }
+
+  rpi_cswitch((uint32_t *)cur, (uint32_t *)cur_thread);
+
 	return;
 }
 
@@ -92,6 +103,13 @@ void rpi_yield(void) {
 	// otherwise: 
 	//	1. put current thread on runq.
 	// 	2. context switch to the new thread.
+
+  if (!Q_empty(&runq)) {
+      rpi_thread_t *cur = rpi_cur_thread();
+      Q_append(&runq, cur);
+      cur_thread = (rpi_thread_t *)Q_pop(&runq);
+      rpi_cswitch((uint32_t *)cur, (uint32_t *)cur_thread);
+  }
 	return;
 }
 
@@ -111,6 +129,8 @@ void rpi_thread_start(void) {
         return;
     rpi_internal_check();
 
+    /*
+     * used by the part 1 of the lab6 
     while (!Q_empty(&runq)) {
         rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
         cur_thread = t;
@@ -118,15 +138,20 @@ void rpi_thread_start(void) {
         th_free(t);
     }
     return;
+    */
 
     //  1. create a new fake thread 
     //  2. dequeue a thread from the runq
     //  3. context switch to it, saving current state in
     //	    <scheduler_thread>
     scheduler_thread = th_alloc();
-    //rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
-    //cur_thread = t;
-    //rpi_cswitch(scheduler_thread, t);
+    rpi_thread_t *t = (rpi_thread_t *)Q_pop(&runq);
+    cur_thread = t;
+    
+    rpi_cswitch((uint32_t *)scheduler_thread, (uint32_t *)t);
+    /* switch to the same thread works.
+     * rpi_cswitch((uint32_t *)scheduler_thread, (uint32_t *)scheduler_thread); 
+     * */
     printk("rpithreads: done with all threads! returning\n");
 }
 
@@ -149,8 +174,7 @@ void rpi_internal_check(void) {
     if(!Q_empty(&runq)) {
         rpi_thread_t *t = (rpi_thread_t *)Q_start(&runq);
         while (t != NULL) {
-            // TO DO: check SP and ra pointer
-            if (t->reg_save_area[9] != (uint32_t)&t->stack[0] + THREAD_MAXSTACK)
+            if (t->reg_save_area[10] != (uint32_t)&t->stack[0] + THREAD_MAXSTACK)
                 panic("invalid stack pointer: should be %u, have %u\n",
                         &t->stack[0], t->reg_save_area[9]);
             t = (rpi_thread_t *)Q_next(t);
