@@ -48,7 +48,7 @@ typedef struct {
 
 /** @brief Section 14.2 of the BCM2835 Peripherals documentation details
     the register layout for the ARM side timer.  page 196 */
-enum {
+typedef enum {
     arm_timer_Base = 0x2000B400,
 
 
