@@ -93,6 +93,15 @@ software_interrupt_asm:
     @   - call
     @   - restore regs
     @   - return from the exception.
+
+    push {r4-r12,lr}
+
+    mov r1, r0
+    ldr r0, [lr,#-4]
+    bl syscall_vector
+
+    pop {r4-r12,lr}
+
     movs pc, lr
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
