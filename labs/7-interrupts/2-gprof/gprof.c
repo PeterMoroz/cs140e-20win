@@ -17,23 +17,37 @@
  *	- gprof_dump will print out all samples.
  */
 
+#define MIN_PC 0x8000   /* start label */
+#define MAX_PC 0x9444   /* near to the end of code, see disassemble listing */
+#define CODE_SIZE (MAX_PC - MIN_PC)
+#define NUM_OF_INSTRUCTIONS (CODE_SIZE >> 2)  /* each instruction is 4 bytes size */
+
+static unsigned *gprof_stats = NULL;
+
+
 // allocate table.
 //    few lines of code
 static unsigned gprof_init(void) {
-    unimplemented();
+    gprof_stats = (unsigned *)kmalloc_aligned(NUM_OF_INSTRUCTIONS * sizeof(unsigned), sizeof(unsigned));
+    return 0;
 }
 
 // increment histogram associated w/ pc.
 //    few lines of code
 static void gprof_inc(unsigned pc) {
-    unimplemented();
+    unsigned i = (pc - MIN_PC) >> 2;
+    gprof_stats[i] += 1;
 }
 
 // print out all samples whose count > min_val
 //
 // make sure sampling does not pick this code up!
 static void gprof_dump(unsigned min_val) {
-    unimplemented();
+    for (int i = 0; i < NUM_OF_INSTRUCTIONS; i++) {
+        if (gprof_stats[i] > min_val) {
+            printk("[%x]: %d\n", (i << 2) + MIN_PC, gprof_stats[i]);
+        }
+    }
 }
 
 
