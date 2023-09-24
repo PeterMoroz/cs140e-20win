@@ -6,28 +6,25 @@
 //  - tx: the GPIO pin used for transmitting.  (make sure you set as output!)
 //  - the baud rate: initially 115200, identical to what we already use.  if you
 //      change this, you will also have to change the baud rate in pi-cat!
-//  - usec_per_bit: the number of micro-seconds (1000*1000 in 1 second) that we
+//  - cycles_per_bit: the number of cycles (700 * 1000*1000 in 1 second) that we
 //      have to hold the TX low (0) or high (1) to transmit a bit.  or, conversely,
-//      the number of usec the RX pin will be held low or high by the sender.
+//      the number of cycles the RX pin will be held low or high by the sender.
 typedef struct {
     int tx,rx;
     unsigned baud;
-    unsigned usec_per_bit;  // usec we send each bit.
+    unsigned cycles_per_bit;
 } sw_uart_t;
 
 
 // we inline compute usec_per_bit b/c we don't have division on the pi.  division
 // by a constant allows the compiler to pre-compute.
-/*
 #define sw_uart_init(_tx,_rx,_baud) \
-    (sw_uart_t){ .tx = _tx, .rx = _rx, .baud = _baud, .usec_per_bit = (1000*1000)/_baud }
-*/
-
-#define sw_uart_init(_tx,_rx,_baud) \
-    (sw_uart_t){ .tx = _tx, .rx = _rx, .baud = _baud, .usec_per_bit = (1000*1000)/_baud }; \
+    (sw_uart_t){ .tx = _tx, .rx = _rx, .baud = _baud, .cycles_per_bit = (700 * 1000*1000)/_baud }; \
     gpio_set_output(_tx); \
     gpio_set_input(_rx); \
-    gpio_set_on(_tx);
+    gpio_set_on(_tx); \
+    cycle_cnt_init(); \
+    enable_cache();
 
 // output a single character: semantically identical to uart_putc.
 void sw_uart_putc(sw_uart_t *uart, unsigned char c);
