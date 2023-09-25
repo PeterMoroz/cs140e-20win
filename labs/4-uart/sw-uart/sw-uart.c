@@ -76,7 +76,62 @@ void sw_uart_putc(sw_uart_t *uart, unsigned char c) {
 //      EASY BUG: if you are reading input, but you do not get here in 
 //      time it will disappear.
 int sw_uart_getc(sw_uart_t *uart, int timeout_usec) {
-    unimplemented();
+    int rx = uart->rx;
+    unsigned delay_amount = uart->cycles_per_bit;
+    unsigned half_delay_amount = delay_amount >> 1;
+    unsigned s = timer_get_usec_raw();
+    int c = 0;
+    // wait for stop bit
+    while (1) {
+        if (gpio_read(rx) == 0)
+            break;
+        if (timer_get_usec_raw() - s >= timeout_usec)
+            return -1;
+    }
+    
+    delay_ncycles(delay_amount + half_delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    delay_ncycles(delay_amount);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+
+    delay_ncycles(half_delay_amount);
+    while (gpio_read(rx) == 0) ;
+
+    return c;
 }
 
 void sw_uart_putk(sw_uart_t *uart, const char *msg) {
