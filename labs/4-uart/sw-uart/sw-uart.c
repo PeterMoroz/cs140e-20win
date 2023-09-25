@@ -16,60 +16,60 @@ static inline void delay_ncycles(unsigned n) {
 // do this first: used timed_write to cleanup.
 //  recall: time to write each bit (0 or 1) is in <uart->usec_per_bit>
 void sw_uart_putc(sw_uart_t *uart, unsigned char c) {
+    int tx = uart->tx;
+    unsigned cycles_per_bit = uart->cycles_per_bit;
     // start bit
-    gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+    gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 0
     if (c & 0x1)
-        gpio_set_on(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_on(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 1
     if (c & 0x2)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 2
     if (c & 0x4)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 3
     if (c & 0x8)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 4
     if (c & 0x10)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 5
     if (c & 0x20)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 6
     if (c & 0x40)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // bit 7
     if (c & 0x80)
-        gpio_set_on(uart->tx);
+        gpio_set_on(tx);
     else
-        gpio_set_off(uart->tx);
-    delay_ncycles(uart->cycles_per_bit);
+        gpio_set_off(tx);
+    delay_ncycles(cycles_per_bit);
     // stop bit
-    gpio_set_on(uart->tx);
-    // in theory delay cycles_per_bit should be enough
-    // but in fact it works wrong, so double delay
-    delay_ncycles(uart->cycles_per_bit);
+    gpio_set_on(tx);
+    delay_ncycles(cycles_per_bit);
 }
 
 // do this second: you can type in pi-cat to send stuff.
