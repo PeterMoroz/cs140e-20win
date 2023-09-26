@@ -13,9 +13,75 @@ void sw_uart_putc(sw_uart_t *uart, unsigned char c) {
              u = n,
              s = cycle_cnt_read();
 
-    unimplemented();
+    gpio_set_off(tx);
+    delay_ncycles(s, n);
+
+    if (c & 0x1)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x2)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x4)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x8)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    
+    if (c & 0x10)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x20)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x40)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+    
+    if (c & 0x80)
+        gpio_set_on(tx);
+    else
+        gpio_set_off(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
+
+
+    gpio_set_on(tx);
+    s = cycle_cnt_read();
+    delay_ncycles(s, n);
 }
 
+// put away from compilation, 
+// because compiler claims that it is already defined in the libpi/sw-uart.h 
+#if 0
 // usec: does not have to be that accurate since the time is just for timeout.
 static inline int wait_until_usec(int pin, int v, unsigned timeout_usec) {
     unsigned start = timer_get_usec_raw();
@@ -26,6 +92,7 @@ static inline int wait_until_usec(int pin, int v, unsigned timeout_usec) {
             return 0;
     }
 }
+#endif
 
 // do this second: you can type in pi-cat to send stuff.
 //      EASY BUG: if you are reading input, but you do not get here in 
@@ -48,9 +115,55 @@ int sw_uart_getc_timeout(sw_uart_t *uart, int timeout_usec) {
     // wait one period + 1/2 to get in the middle of the next read.
     delay_ncycles(s, n + 1*u);
 
-    unimplemented();
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+    
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
+    c >>= 1;
+
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, u);
+    if (gpio_read(rx) != 0)
+        c |= 0x80;
 
     // make sure you wait for a stop bit: otherwise the next read may fail.
+    s = cycle_cnt_read(); 
+    delay_ncycles(s, n);
+    while (gpio_read(rx) == 0) ;
 
     return (int)c;
 }
@@ -65,7 +178,14 @@ int sw_uart_gets_until(sw_uart_t *u, uint8_t *buf, uint32_t nbytes, uint8_t end,
 
     int i;
     for(i = 0; i < nbytes-1; i++) {
-        unimplemented();
+        int c = sw_uart_getc_timeout(u, usec_timeout);
+        if (c == -1)
+            return i > 0 ? -i : i;
+        buf[i] = c;
+        if (c == end) {
+            i++;
+            break;
+        }
     }
     buf[i] = 0;
     return i;
@@ -82,7 +202,10 @@ int sw_uart_gets_timeout(sw_uart_t *u, uint8_t *buf,
 
     int i;
     for(i = 0; i < nbytes-1; i++) {
-        unimplemented();
+        int c = sw_uart_getc_timeout(u, usec_timeout);
+        if (c == -1)
+            break;
+        buf[i] = c;
     }
     buf[i] = 0;
     return i;
